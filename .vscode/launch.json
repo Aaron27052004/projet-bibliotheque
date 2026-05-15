@@ -1,0 +1,26 @@
+{
+    // Utilisez IntelliSense pour en savoir plus sur les attributs possibles.
+    // Pointez pour afficher la description des attributs existants.
+    // Pour plus d'informations, visitez : https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+
+        {
+            "type": "java",
+            "name": "Lancer Spring Boot",
+            "request": "launch",
+            "mainClass": "com.projetl2.bibliotheque.BibliothequeApplication",
+            "env": {
+                "DB_USERNAME": "root",
+                "DB_PASSWORD": "Aaron2626!"
+            }
+        },
+        {
+            "type": "java",
+            "name": "BibliothequeApplication",
+            "request": "launch",
+            "mainClass": "com.projetl2.bibliotheque.BibliothequeApplication",
+            "projectName": "bibliotheque"
+        }
+    ]
+}
