@@ -2,28 +2,60 @@ package com.projetl2.bibliotheque.controller;
 
 import com.projetl2.bibliotheque.entity.Auteur;
 import com.projetl2.bibliotheque.repository.AuteurRepository;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@RestController // Dit à Spring : "Cette classe va répondre aux requêtes Web (API REST)"
-@RequestMapping("/api/auteurs") // L'URL de base pour tous les trucs liés aux auteurs
+@RestController
+@RequestMapping("/api/auteurs")
+@CrossOrigin("*") // <-- AJOUTE ÇA pour autoriser ton site web à parler au serveur
 public class AuteurController {
 
-    // On "injecte" notre repository pour pouvoir l'utiliser
     private final AuteurRepository auteurRepository;
 
     public AuteurController(AuteurRepository auteurRepository) {
         this.auteurRepository = auteurRepository;
     }
 
-    // Quand quelqu'un fera un GET sur http://localhost:8080/api/auteurs
+    // 1. Récupérer tous les auteurs
     @GetMapping
     public List<Auteur> getAllAuteurs() {
-        // On demande au repository de chercher tous les auteurs, 
-        // et Spring va automatiquement les transformer en texte (JSON) !
         return auteurRepository.findAll();
+    }
+
+    // 2. Récupérer un auteur par son ID (num_aut)
+    @GetMapping("/{id}")
+    public Auteur getAuteurById(@PathVariable Integer id) {
+        return auteurRepository.findById(id).orElse(null);
+    }
+
+    // 3. Créer un nouvel auteur
+    @PostMapping
+    public Auteur createAuteur(@RequestBody Auteur auteur) {
+        return auteurRepository.save(auteur);
+    }
+
+    // 4. Mettre à jour un auteur
+    @PutMapping("/{id}")
+    public Auteur updateAuteur(@PathVariable Integer id, @RequestBody Auteur auteurDetails) {
+        Auteur auteur = auteurRepository.findById(id).orElse(null);
+        if (auteur != null) {
+            auteur.setNomAut(auteurDetails.getNomAut());
+            auteur.setPrenomAut(auteurDetails.getPrenomAut());
+            return auteurRepository.save(auteur);
+        }
+        return null;
+    }
+
+    // 5. Supprimer un auteur
+    @DeleteMapping("/{id}")
+    public void deleteAuteur(@PathVariable Integer id) {
+        auteurRepository.deleteById(id);
+    }
+
+    // rechercher un auteur
+    @GetMapping("/search")
+    public List<Auteur> searchByNom(@RequestParam String nom) {
+        return auteurRepository.findByNomAut(nom);
     }
 }
