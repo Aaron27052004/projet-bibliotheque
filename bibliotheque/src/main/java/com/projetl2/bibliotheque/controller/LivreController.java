@@ -1,71 +1,67 @@
 package com.projetl2.bibliotheque.controller;
 
 import com.projetl2.bibliotheque.entity.Livre;
-import com.projetl2.bibliotheque.entity.Oeuvre;
 import com.projetl2.bibliotheque.repository.LivreRepository;
 import com.projetl2.bibliotheque.repository.OeuvreRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
-@RequestMapping("/api/livres")
+@RequestMapping("/api/exemplaires") // Nommage RESTful métier
 @CrossOrigin("*")
 public class LivreController {
 
     private final LivreRepository livreRepository;
     private final OeuvreRepository oeuvreRepository;
 
-    // On injecte aussi OeuvreRepository pour pouvoir vérifier que l'oeuvre existe
-    // au moment de créer un nouveau livre
     public LivreController(LivreRepository livreRepository, OeuvreRepository oeuvreRepository) {
         this.livreRepository = livreRepository;
         this.oeuvreRepository = oeuvreRepository;
     }
 
-    // 1. Récupérer tous les exemplaires
+    // GET /api/exemplaires?statut=disponible
     @GetMapping
-    public List<Livre> getAllLivres() {
-        return livreRepository.findAll();
-    }
-
-    // 2. Voir les livres disponibles (En rayon)
-    @GetMapping("/search/disponibles")
-    public List<Livre> getLivresDisponibles() {
-        return livreRepository.findByStatuLivre("En rayon");
-    }
-
-    // 3. Ajouter un exemplaire
-    // L'URL attend l'ISBN de l'oeuvre pour lier le livre directement
-    @PostMapping("/oeuvre/{isbn}")
-    public Livre createLivre(@PathVariable String isbn, @RequestBody Livre livre) {
-        // On cherche l'oeuvre en base de données
-        Oeuvre oeuvreExistante = oeuvreRepository.findById(isbn).orElse(null);
-        
-        if (oeuvreExistante != null) {
-            // Si l'oeuvre existe, on l'attache au livre et on sauvegarde
-            livre.setOeuvre(oeuvreExistante);
-            return livreRepository.save(livre);
+    public ResponseEntity<List<Livre>> getExemplaires(@RequestParam(required = false) String statut) {
+        if ("disponible".equalsIgnoreCase(statut)) {
+            return ResponseEntity.ok(livreRepository.findByStatuLivre("En rayon"));
         }
-        // Si l'ISBN n'existe pas, on renvoie une erreur (null)
-        return null;
+        return ResponseEntity.ok(livreRepository.findAll());
     }
 
-    // 4. Mettre à jour l'état ou le statut d'un livre
-    @PutMapping("/{id}")
-    public Livre updateLivre(@PathVariable Integer id, @RequestBody Livre details) {
-        Livre livre = livreRepository.findById(id).orElse(null);
-        if (livre != null) {
-            livre.setEtatLivre(details.getEtatLivre());
-            livre.setStatuLivre(details.getStatuLivre());
-            return livreRepository.save(livre);
-        }
-        return null;
+    // POST /api/exemplaires (isbn dans le body)
+    @PostMapping
+    public ResponseEntity<?> createExemplaire(@RequestBody Map<String, String> payload) {
+        String isbn = payload.get("isbn");
+        if (isbn == null) return ResponseEntity.badRequest().body("L'ISBN est requis dans le body.");
+
+        return oeuvreRepository.findById(isbn).map(oeuvre -> {
+            Livre nouveauLivre = new Livre();
+            nouveauLivre.setOeuvre(oeuvre);
+            nouveauLivre.setEtatLivre(payload.getOrDefault("etatLivre", "Neuf"));
+            nouveauLivre.setStatuLivre("En rayon");
+            return ResponseEntity.status(HttpStatus.CREATED).body(livreRepository.save(nouveauLivre));
+        }).orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body(null));
     }
 
-    // 5. Supprimer un livre du système (ex: livre perdu ou détruit)
+    // PATCH /api/exemplaires/{id} (Etat / Statut seulement)
+    @PatchMapping("/{id}")
+    public ResponseEntity<Livre> updateExemplairePartiel(@PathVariable Integer id, @RequestBody Map<String, String> updates) {
+        return livreRepository.findById(id).map(livre -> {
+            if (updates.containsKey("etatLivre")) livre.setEtatLivre(updates.get("etatLivre"));
+            if (updates.containsKey("statuLivre")) livre.setStatuLivre(updates.get("statuLivre"));
+            return ResponseEntity.ok(livreRepository.save(livre));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    // DELETE /api/exemplaires/{id}
     @DeleteMapping("/{id}")
-    public void deleteLivre(@PathVariable Integer id) {
+    public ResponseEntity<Void> deleteExemplaire(@PathVariable Integer id) {
+        if (!livreRepository.existsById(id)) return ResponseEntity.notFound().build();
         livreRepository.deleteById(id);
+        return ResponseEntity.noContent().build();
     }
 }

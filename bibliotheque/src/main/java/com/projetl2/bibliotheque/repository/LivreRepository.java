@@ -14,4 +14,5 @@ public interface LivreRepository extends JpaRepository<Livre, Integer> {
 
     // Pour trouver tous les exemplaires physiques d'une oeuvre précise (via son ISBN)
     List<Livre> findByOeuvreIsbn(String isbn);
+    List<Livre> findByOeuvreIsbnAndStatuLivre(String isbn, String statuLivre);
 }

@@ -1,68 +1,98 @@
 package com.projetl2.bibliotheque.controller;
 
 import com.projetl2.bibliotheque.entity.Oeuvre;
+import com.projetl2.bibliotheque.entity.Livre;
 import com.projetl2.bibliotheque.repository.OeuvreRepository;
+import com.projetl2.bibliotheque.repository.LivreRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/oeuvres")
+@CrossOrigin("*") // À remplacer par ton domaine front en production
 public class OeuvreController {
 
     private final OeuvreRepository oeuvreRepository;
+    private final LivreRepository livreRepository;
 
-    public OeuvreController(OeuvreRepository oeuvreRepository) {
+    public OeuvreController(OeuvreRepository oeuvreRepository, LivreRepository livreRepository) {
         this.oeuvreRepository = oeuvreRepository;
+        this.livreRepository = livreRepository;
     }
 
-    // 1. Récupérer toutes les œuvres
+    // GET /api/oeuvres?titre=...&genre=...&disponible=...
     @GetMapping
-    public List<Oeuvre> getAllOeuvres() {
-        return oeuvreRepository.findAll();
-    }
-
-    // 2. Récupérer une œuvre par son ISBN
-    @GetMapping("/{isbn}")
-    public Oeuvre getOeuvreByIsbn(@PathVariable String isbn) {
-        return oeuvreRepository.findById(isbn).orElse(null);
-    }
-
-    // 3. Créer une nouvelle œuvre
-    @PostMapping
-    public Oeuvre createOeuvre(@RequestBody Oeuvre oeuvre) {
-        return oeuvreRepository.save(oeuvre);
-    }
-
-    // 4. Mettre à jour une œuvre
-    @PutMapping("/{isbn}")
-    public Oeuvre updateOeuvre(@PathVariable String isbn, @RequestBody Oeuvre oeuvreDetails) {
-        Oeuvre oeuvre = oeuvreRepository.findById(isbn).orElse(null);
-        if (oeuvre != null) {
-            oeuvre.setNomOeuvre(oeuvreDetails.getNomOeuvre());
-            oeuvre.setEdit(oeuvreDetails.getEdit());
-            oeuvre.setGenre(oeuvreDetails.getGenre());
-            oeuvre.setAnneeParu(oeuvreDetails.getAnneeParu());
-            return oeuvreRepository.save(oeuvre);
+    public ResponseEntity<List<Oeuvre>> getOeuvres(
+            @RequestParam(required = false) String titre,
+            @RequestParam(required = false) String genre,
+            @RequestParam(required = false) Boolean disponible) {
+            
+        // Logique de filtrage unifiée (à implémenter avec des Specifications Spring ou des if/else sur les appels Repository)
+        if (Boolean.TRUE.equals(disponible)) {
+            return ResponseEntity.ok(oeuvreRepository.findOeuvresEnStock());
         }
-        return null;
+        if (titre != null) {
+            return ResponseEntity.ok(oeuvreRepository.findByNomOeuvreContainingIgnoreCase(titre));
+        }
+        if (genre != null) {
+            return ResponseEntity.ok(oeuvreRepository.findByGenreContainingIgnoreCase(genre));
+        }
+        return ResponseEntity.ok(oeuvreRepository.findAll());
     }
 
-    // 5. Supprimer une œuvre
+    // GET /api/oeuvres/{isbn}
+    @GetMapping("/{isbn}")
+    public ResponseEntity<Oeuvre> getOeuvreByIsbn(@PathVariable String isbn) {
+        return oeuvreRepository.findById(isbn)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    // POST /api/oeuvres
+    @PostMapping
+    public ResponseEntity<Oeuvre> createOeuvre(@RequestBody Oeuvre oeuvre) {
+        Oeuvre saved = oeuvreRepository.save(oeuvre);
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    }
+
+    // PUT /api/oeuvres/{isbn}
+    @PutMapping("/{isbn}")
+    public ResponseEntity<Oeuvre> updateOeuvre(@PathVariable String isbn, @RequestBody Oeuvre details) {
+        return oeuvreRepository.findById(isbn).map(oeuvre -> {
+            oeuvre.setNomOeuvre(details.getNomOeuvre());
+            oeuvre.setEdit(details.getEdit());
+            oeuvre.setGenre(details.getGenre());
+            oeuvre.setAnneeParu(details.getAnneeParu());
+            return ResponseEntity.ok(oeuvreRepository.save(oeuvre));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    // DELETE /api/oeuvres/{isbn}
     @DeleteMapping("/{isbn}")
-    public void deleteOeuvre(@PathVariable String isbn) {
+    public ResponseEntity<Void> deleteOeuvre(@PathVariable String isbn) {
+        if (!oeuvreRepository.existsById(isbn)) {
+            return ResponseEntity.notFound().build();
+        }
         oeuvreRepository.deleteById(isbn);
+        return ResponseEntity.noContent().build();
     }
 
-     // rechercher une oeuvre
-    @GetMapping("/searchName")
-    public List<Oeuvre> searchByNom(@RequestParam String nomOeuvre) {
-        return oeuvreRepository.findByNomOeuvre(nomOeuvre);
-    }
+    // NOUVEAU : GET /api/oeuvres/{isbn}/exemplaires?statut=disponible
+    @GetMapping("/{isbn}/exemplaires")
+    public ResponseEntity<List<Livre>> getExemplairesByOeuvre(
+            @PathVariable String isbn,
+            @RequestParam(required = false) String statut) {
+        
+        if (!oeuvreRepository.existsById(isbn)) {
+            return ResponseEntity.notFound().build();
+        }
 
-    // recherche oeuvre par genre
-    @GetMapping("/searchGenre")
-    public List<Oeuvre> searchByGenre(@RequestParam String genre){
-        return oeuvreRepository.findByGenre(genre);
+        if ("disponible".equalsIgnoreCase(statut)) {
+            return ResponseEntity.ok(livreRepository.findByOeuvreIsbnAndStatuLivre(isbn, "En rayon"));
+        }
+        return ResponseEntity.ok(livreRepository.findByOeuvreIsbn(isbn));
     }
 }
