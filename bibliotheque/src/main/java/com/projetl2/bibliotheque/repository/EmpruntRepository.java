@@ -9,9 +9,6 @@ import java.util.List;
 @Repository
 public interface EmpruntRepository extends JpaRepository<Emprunt, Integer> {
     
-    // Trouver tous les emprunts d'un adhérent spécifique
-    List<Emprunt> findByAdherentNumAdher(Integer numAdher);
-
-    // Trouver tous les emprunts pour un statut précis (ex: "en cours")
-    List<Emprunt> findByStatutEmp(String statutEmp);
+    // Ajoute cette ligne spécifique pour la RG13
+    List<Emprunt> findByAdherentNumAdherAndStatutEmp(Integer numAdher, String statutEmp);
 }
