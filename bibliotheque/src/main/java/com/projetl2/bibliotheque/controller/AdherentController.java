@@ -82,7 +82,7 @@ public class AdherentController {
         //delete emprunts using the adherent id
         List<Emprunt> emprunts = empruntRepository.findByAdherentNumAdher(id);
         for(Emprunt emprunt : emprunts){
-            if ( !emprunt.getStatutEmp().equals("colturé"))
+            if ( !emprunt.getStatutEmp().equals("cloturé"))
                 return ResponseEntity.badRequest().body("Impossible de supprimer cet adhérent : il a un emprunt en cours.");
         }
 
