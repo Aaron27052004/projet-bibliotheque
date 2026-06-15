@@ -1,7 +1,5 @@
 package com.projetl2.bibliotheque.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
 import jakarta.persistence.*;
 import java.util.List;
 
@@ -30,8 +28,7 @@ public class Auteur {
         joinColumns = @JoinColumn(name = "num_aut"), 
         inverseJoinColumns = @JoinColumn(name = "isbn") 
     )
-    // Quand on affiche les oeuvres de cet auteur, on ne ré-affiche pas les auteurs de ces oeuvres
-    @JsonIgnoreProperties("auteurs") 
+
     private List<Oeuvre> oeuvres;
 
     // ==========================================

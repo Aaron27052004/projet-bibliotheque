@@ -1,5 +1,7 @@
 package com.projetl2.bibliotheque.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.persistence.*;
 
 @Entity
@@ -26,6 +28,7 @@ public class Livre {
     // Plusieurs livres (LIVRE) peuvent correspondre à une seule oeuvre (OEUVRE)
     @ManyToOne
     @JoinColumn(name = "isbn", nullable = false)
+    @JsonIgnoreProperties("livres")
     private Oeuvre oeuvre;
 
     // ==========================================

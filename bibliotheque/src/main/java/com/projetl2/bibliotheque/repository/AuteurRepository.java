@@ -16,6 +16,8 @@ public interface AuteurRepository extends JpaRepository<Auteur, Integer> {
     // comme findAll(), save(), deleteById(), findById(), etc.   
     List<Auteur> findByNomAut(String nomAut);     
 
-    @Query("SELECT o FROM Oeuvre o JOIN o.auteurs a WHERE a.numAut = :idAuteur")
-    List<Oeuvre> findOeuvresByAuteurId(@Param("idAuteur") Integer idAuteur);
+    @Query("SELECT o FROM Auteur a JOIN a.oeuvres o WHERE a.numAut = :id")
+    List<Oeuvre> findOeuvresByAuteurId(@Param("id") Integer id);
+
+    List<Auteur> findByNomAutContainingIgnoreCase(String nom);
 }

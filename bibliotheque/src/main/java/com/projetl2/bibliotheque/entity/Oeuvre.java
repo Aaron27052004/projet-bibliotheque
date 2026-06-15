@@ -29,10 +29,14 @@ public class Oeuvre {
     // ==========================================
     // RELATION INVERSE AVEC LA TABLE AUTEUR
     // ==========================================
-    @ManyToMany(mappedBy = "oeuvres")
-    // Quand on affiche les auteurs de cette oeuvre, on ne ré-affiche pas les oeuvres de ces auteurs
+    // 1. Pour Hibernate : "Charge les auteurs tout de suite, la connexion est encore ouverte !"
+    @ManyToMany(mappedBy = "oeuvres", fetch = FetchType.EAGER)
     @JsonIgnoreProperties("oeuvres") 
     private List<Auteur> auteurs;
+
+
+    @OneToMany(mappedBy = "oeuvre")
+    private List<Livre> livres;
 
     // ==========================================
     // CONSTRUCTEURS, GETTERS ET SETTERS
@@ -87,5 +91,9 @@ public class Oeuvre {
 
     public void setAuteurs(List<Auteur> auteurs) {
         this.auteurs = auteurs;
+    }
+
+    public List<Livre> getLivres(){
+        return livres;
     }
 }

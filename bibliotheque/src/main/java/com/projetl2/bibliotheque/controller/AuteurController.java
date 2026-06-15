@@ -24,7 +24,7 @@ public class AuteurController {
     @GetMapping
     public ResponseEntity<List<Auteur>> getAuteurs(@RequestParam(required = false) String nom) {
         if (nom != null) {
-            return ResponseEntity.ok(auteurRepository.findByNomAut(nom)); // Nécessite de créer cette méthode dans le repo si absente
+            return ResponseEntity.ok(auteurRepository.findByNomAutContainingIgnoreCase(nom)); 
         }
         return ResponseEntity.ok(auteurRepository.findAll());
     }

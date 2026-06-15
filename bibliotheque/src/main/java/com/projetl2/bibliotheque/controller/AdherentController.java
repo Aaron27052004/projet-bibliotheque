@@ -4,6 +4,9 @@ import com.projetl2.bibliotheque.entity.Adherent;
 import com.projetl2.bibliotheque.entity.Emprunt;
 import com.projetl2.bibliotheque.repository.AdherentRepository;
 import com.projetl2.bibliotheque.repository.EmpruntRepository;
+
+import jakarta.transaction.Transactional;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -72,8 +75,19 @@ public class AdherentController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteAdherent(@PathVariable Integer id) {
+    @Transactional
+    public ResponseEntity<?> deleteAdherent(@PathVariable Integer id) {
         if (!adherentRepository.existsById(id)) return ResponseEntity.notFound().build();
+
+        //delete emprunts using the adherent id
+        List<Emprunt> emprunts = empruntRepository.findByAdherentNumAdher(id);
+        for(Emprunt emprunt : emprunts){
+            if ( !emprunt.getStatutEmp().equals("colturé"))
+                return ResponseEntity.badRequest().body("Impossible de supprimer cet adhérent : il a un emprunt en cours.");
+        }
+
+        empruntRepository.deleteAll(emprunts);
+        
         adherentRepository.deleteById(id);
         return ResponseEntity.noContent().build();
     }

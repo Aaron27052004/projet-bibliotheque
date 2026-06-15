@@ -2,6 +2,7 @@ package com.projetl2.bibliotheque.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 
 @Entity
 @Table(name = "EMPRUNT")
@@ -65,4 +66,11 @@ public class Emprunt {
 
     public Adherent getAdherent() { return adherent; }
     public void setAdherent(Adherent adherent) { this.adherent = adherent; }
+
+    @Transient
+    public long getJoursRetard() {
+        if (dateRetourPrevue == null) return 0;
+        long d = ChronoUnit.DAYS.between(dateRetourPrevue, LocalDate.now());
+        return Math.max(d, 0);
+    }
 }

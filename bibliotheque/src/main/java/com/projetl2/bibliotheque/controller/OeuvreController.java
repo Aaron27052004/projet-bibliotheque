@@ -2,7 +2,12 @@ package com.projetl2.bibliotheque.controller;
 
 import com.projetl2.bibliotheque.entity.Oeuvre;
 import com.projetl2.bibliotheque.entity.Livre;
+import com.projetl2.bibliotheque.entity.Auteur;
 import com.projetl2.bibliotheque.repository.OeuvreRepository;
+import com.projetl2.bibliotheque.repository.AuteurRepository;
+
+import jakarta.transaction.Transactional;
+
 import com.projetl2.bibliotheque.repository.LivreRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,10 +22,12 @@ public class OeuvreController {
 
     private final OeuvreRepository oeuvreRepository;
     private final LivreRepository livreRepository;
+    private final AuteurRepository auteurRepository;
 
-    public OeuvreController(OeuvreRepository oeuvreRepository, LivreRepository livreRepository) {
+    public OeuvreController(OeuvreRepository oeuvreRepository, LivreRepository livreRepository, AuteurRepository auteurRepository) {
         this.oeuvreRepository = oeuvreRepository;
         this.livreRepository = livreRepository;
+        this.auteurRepository= auteurRepository;
     }
 
     // GET /api/oeuvres?titre=...&genre=...&disponible=...
@@ -71,11 +78,16 @@ public class OeuvreController {
     }
 
     // DELETE /api/oeuvres/{isbn}
+    @Transactional
     @DeleteMapping("/{isbn}")
-    public ResponseEntity<Void> deleteOeuvre(@PathVariable String isbn) {
+    public ResponseEntity<?> deleteOeuvre(@PathVariable String isbn) {
         if (!oeuvreRepository.existsById(isbn)) {
             return ResponseEntity.notFound().build();
         }
+
+        List<Livre> livres = livreRepository.findByOeuvreIsbn(isbn);
+        if(!livres.isEmpty())
+            return ResponseEntity.badRequest().body("impossible de supprimer cette oeuvre, des exemplaires sont encores présents");
         oeuvreRepository.deleteById(isbn);
         return ResponseEntity.noContent().build();
     }
@@ -95,4 +107,33 @@ public class OeuvreController {
         }
         return ResponseEntity.ok(livreRepository.findByOeuvreIsbn(isbn));
     }
+
+    @Transactional
+    @PostMapping("/{isbn}/auteurs/{numAut}")
+    public ResponseEntity<?> lierEntity(@PathVariable String isbn, @PathVariable int numAut){
+        Oeuvre oeuvre = oeuvreRepository.findById(isbn).orElse(null);
+        Auteur auteur = auteurRepository.findById(numAut).orElse(null);
+
+        if (( oeuvre == null ) || ( auteur == null) ) return ResponseEntity.notFound().build();
+        if (oeuvre == null || auteur == null) return ResponseEntity.notFound().build();
+        if (auteur.getOeuvres() == null) auteur.setOeuvres(new java.util.ArrayList<>());
+        if (!auteur.getOeuvres().contains(oeuvre)) {
+            auteur.getOeuvres().add(oeuvre);   // Auteur est le côté PROPRIÉTAIRE → c'est lui qu'on sauvegarde
+            auteurRepository.save(auteur);
+        }
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{isbn}/auteurs/{numAut}")
+    @Transactional
+    public ResponseEntity<?> delierAuteur(@PathVariable String isbn, @PathVariable Integer numAut) {
+        Auteur auteur = auteurRepository.findById(numAut).orElse(null);
+        if (auteur == null) return ResponseEntity.notFound().build();
+        if (auteur.getOeuvres() != null) {
+            auteur.getOeuvres().removeIf(o -> o.getIsbn().equals(isbn));
+            auteurRepository.save(auteur);
+        }
+        return ResponseEntity.noContent().build();
+    }
+
 }
